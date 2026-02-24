@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Recipe Finder App</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#1a1a2e;font-family:"Segoe UI",sans-serif;color:#eee;min-height:100vh;}
+header{background:linear-gradient(135deg,#e94560,#c0392b);padding:2rem;text-align:center;}
+header h1{font-size:2.2rem;} header p{opacity:.85;margin-top:4px;}
+.search-bar{display:flex;max-width:600px;margin:2rem auto;gap:10px;padding:0 1rem;}
+input{flex:1;padding:12px 16px;border:none;border-radius:8px;background:#16213e;color:#eee;font-size:1rem;border:1px solid #e94560;}
+button{padding:12px 20px;background:#e94560;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:1rem;}
+#results{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1.5rem;max-width:1100px;margin:0 auto;padding:1rem;}
+.card{background:#16213e;border-radius:12px;overflow:hidden;transition:transform .2s;cursor:pointer;}
+.card:hover{transform:translateY(-4px);}
+.card img{width:100%;height:160px;object-fit:cover;}
+.card-body{padding:12px;}
+.card-body h3{font-size:1rem;color:#e94560;}
+.card-body p{font-size:.85rem;color:#aaa;margin-top:4px;}
+#modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10;align-items:center;justify-content:center;}
+#modal.open{display:flex;}
+.modal-box{background:#16213e;border-radius:14px;max-width:500px;width:90%;padding:1.5rem;max-height:80vh;overflow-y:auto;}
+.modal-box h2{color:#e94560;margin-bottom:12px;}
+.modal-box img{width:100%;border-radius:8px;margin-bottom:12px;}
+.close-btn{background:#e94560;border:none;color:#fff;padding:8px 18px;border-radius:6px;cursor:pointer;margin-top:12px;}
+#status{text-align:center;padding:1rem;color:#aaa;}
+</style></head>
+<body>
+<header><h1>🍽️ Recipe Finder App</h1><p>Discover delicious recipes by ingredient</p></header>
+<div class="search-bar">
+  <input type="text" id="query" placeholder="Enter ingredient (e.g. chicken, pasta)..." value="chicken">
+  <button onclick="search()">🔍 Search</button>
+</div>
+<div id="status"></div>
+<div id="results"></div>
+<div id="modal"><div class="modal-box" id="modal-box">
+  <h2 id="m-title"></h2>
+  <img id="m-img" src="" alt="">
+  <p id="m-area"></p>
+  <p id="m-category"></p>
+  <p id="m-instructions"></p>
+  <button class="close-btn" onclick="closeModal()">✕ Close</button>
+</div></div>
+<script>
+async function search(){
+  const q=document.getElementById("query").value.trim();
+  if(!q)return;
+  document.getElementById("status").textContent="🔍 Searching...";
+  document.getElementById("results").innerHTML="";
+  const url=`https://www.themealdb.com/api/json/v1/1/filter.php?i=${encodeURIComponent(q)}`;
+  try{
+    const res=await fetch(url);
+    const data=await res.json();
+    const meals=data.meals||[];
+    document.getElementById("status").textContent=meals.length?`Found ${meals.length} recipes`:"No recipes found.";
+    meals.slice(0,12).forEach(meal=>{
+      const card=document.createElement("div");
+      card.className="card";
+      card.innerHTML=`<img src="${meal.strMealThumb}/preview" alt="${meal.strMeal}"><div class="card-body"><h3>${meal.strMeal}</h3><p>Click for details</p></div>`;
+      card.onclick=()=>showDetail(meal.idMeal);
+      document.getElementById("results").appendChild(card);
+    });
+  }catch(e){document.getElementById("status").textContent="Error fetching recipes.";}
+}
+async function showDetail(id){
+  const res=await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${id}`);
+  const data=await res.json();
+  const m=data.meals[0];
+  document.getElementById("m-title").textContent=m.strMeal;
+  document.getElementById("m-img").src=m.strMealThumb;
+  document.getElementById("m-area").textContent="📍 "+m.strArea;
+  document.getElementById("m-category").textContent="🏷️ "+m.strCategory;
+  document.getElementById("m-instructions").textContent=m.strInstructions.slice(0,400)+"...";
+  document.getElementById("modal").classList.add("open");
+}
+function closeModal(){document.getElementById("modal").classList.remove("open");}
+document.getElementById("modal").onclick=e=>{if(e.target===document.getElementById("modal"))closeModal();};
+document.getElementById("query").addEventListener("keydown",e=>{if(e.key==="Enter")search();});
+search();
+</script></body></html>
